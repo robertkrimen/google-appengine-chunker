@@ -127,6 +127,10 @@ class GaeChunkerHandler(webapp.RequestHandler):
         response = {}
         if chunk_message:
             response["mk"] = chunk_message.key().id()
+        if chunk:
+            response["ck"] = chunk.key().id()
+        if not message is None:
+            response["complete"] = True
 
         self.prepare_response(response, chunk_message, chunk, message)
         self.response.headers["Content-Type"] = "text/plain"

@@ -29,12 +29,12 @@ $(document).ready(function(){
 
     console.log();
 
-    function sendMessage(message) {
+    function sendMessage(message, handler) {
         if ("object" == typeof message)
             message = YAHOO.lang.JSON.stringify(message);
         message = encodeURIComponent(message)
         var payload;
-        var payload_size = 4;
+        var payload_size = 1600;
         if (message.length > payload_size) {
             payload = [];
             var from = 0;
@@ -54,19 +54,28 @@ $(document).ready(function(){
 
         sendChunk({ ml: payload.length, }, payload[0], function(data){
             var rank = 0;
-            while(true) {
-                rank += 1;
-                payload.splice(0, 1);
-                if (! payload.length)
-                    break;
-                sendChunk({ mk: data.mk, cr: rank }, payload[0], function(data){
-                    console.log(data);
-                });
+            if (data.complete) {
+                handler(data)
+            }
+            else {
+                while(true) {
+                    rank += 1;
+                    payload.splice(0, 1);
+                    if (! payload.length)
+                        break;
+                    sendChunk({ mk: data.mk, cr: rank }, payload[0], function(data){
+                        if (data.complete) {
+                            handler(data)
+                        }
+                    });
+                }
             }
         });
     }
 
-    sendMessage(message);
+    sendMessage(message, function(data) {
+        console.log("Got it! ", data)
+    });
 });
   </script>
 <body>
