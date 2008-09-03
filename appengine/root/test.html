@@ -1,0 +1,65 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+                    "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <script src="http://yui.yahooapis.com/2.5.2/build/yahoo/yahoo.js"></script>
+  <script src="http://yui.yahooapis.com/2.5.2/build/utilities/utilities.js"></script>
+  <script src="http://yui.yahooapis.com/2.5.2/build/logger/logger.js"></script>
+  <script src="http://yui.yahooapis.com/2.5.2/build/yuitest/yuitest.js"></script>
+  <script src="http://yui.yahooapis.com/2.5.2/build/json/json-min.js"></script>
+  <script src="http://appengine.bravo9.com/b9j/b9j.uncompressed.js"></script>
+  <script src="http://code.jquery.com/jquery-latest.js"></script>
+  <script type="text/javascript">
+$(document).ready(function(){
+
+    var uri = new b9j.uri.URI("http://localhost:8080/chunker");
+    var message = { alphabet: "abcdefghijklmnopqrstuvwxyz" };
+
+    function sendChunk(query, payload, handler) {
+        var _uri = uri.clone();
+        _uri.query().set(query);
+        // $.getJSON(_uri + "&cp=" + payload + "&cb=?", handler);
+        _uri.query().set("cp", payload);
+        $.getJSON(_uri + "&cb=?", handler);
+    }
+
+    console.log();
+
+    function sendMessage(message) {
+        if ("object" == typeof message)
+            message = YAHOO.lang.JSON.stringify(message);
+        // message = encodeURIComponent(message)
+        var payload;
+        var payload_size = 10;
+        if (message.length > payload_size) {
+            payload = [];
+            var from = 0;
+            while (from < message.length) {
+                var to = from + payload_size > message.length ? message.length - from : payload_size;
+                payload.push(message.substr(from, to));
+                from += to;
+            }
+        }
+        else 
+            payload = [ message ];
+
+        sendChunk({ ml: payload.length, }, payload[0], function(data){
+            var rank = 0;
+            while(true) {
+                rank += 1;
+                payload.splice(0, 1);
+                if (! payload.length)
+                    break;
+                sendChunk({ mk: data.mk, cr: rank }, payload[0], function(data){
+                    console.log(data);
+                });
+            }
+        });
+    }
+
+    sendMessage(message);
+});
+  </script>
+<body>
+</body>
+</html>

@@ -1,0 +1,13 @@
+application: gae-chunker
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+
+- url: /chunker(/.*)?
+  script: chunker.py
+
+- url: /(.*\.html)
+  static_files: root/\1
+  upload: root

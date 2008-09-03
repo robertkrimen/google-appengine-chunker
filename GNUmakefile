@@ -1,4 +1,4 @@
-.PHONY: all test time clean distclean dist distcheck upload distupload
+.PHONY: all test time clean distclean dist distcheck upload distupload test-appengine
 
 all: test
 
@@ -21,3 +21,7 @@ clean: distclean
 reset: clean
 	perl Makefile.PL
 	$(MAKE) test
+
+test-appengine: ./google_appengine/dev_appserver.py
+	$< appengine
+
