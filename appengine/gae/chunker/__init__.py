@@ -54,43 +54,66 @@ class GaeChunkerChunk(db.Model):
     payload=db.TextProperty(required = True)
 
 class GaeChunkerHandler(webapp.RequestHandler):
+
+    def assemble_message(self, query):
+        message = ""
+        for chunk in query:
+            message += chunk.payload
+        return message;
+
+    def prepare_response(self, response, chunk_message, chunk, message):
+        ""
+
+    def new_message(self, length):
+        chunk_message = GaeChunkerChunkMessage(
+            length = length
+        )
+        chunk_message.put()
+        return chunk_message
+
+    def get_message(self, key):
+        return GaeChunkerChunkMessage.get_by_id(key)
+
+    def new_chunk(self, chunk_message, rank, payload):
+        chunk = GaeChunkerChunk(
+            message = chunk_message,
+            rank = rank,
+            payload = payload,
+        )
+        chunk.put()
+        return chunk
+
+
     def get(self):
 
+        message_length = self.request.get("ml", None)
         message_key = self.request.get("mk", None)
+
         chunk_rank = self.request.get("cr", None)
-        payload = self.request.get("cp", None)
+        chunk_payload = self.request.get("cp", None)
+
         callback = self.request.get("cb")
 
         chunk_message = None
         if empty( message_key ):
-            message_length = long(self.request.get("ml", None))
-            chunk_message = GaeChunkerChunkMessage(
-                length = message_length
-            )
-            chunk_message.put()
+            chunk_message = self.new_message(long(message_length))
             chunk_rank = 0
         else:
-            chunk_message = GaeChunkerChunkMessage.get_by_id(long(message_key))
+            chunk_message = self.get_message(long(message_key))
 
-        chunk = GaeChunkerChunk(
-            message = chunk_message,
-            rank = int(chunk_rank),
-            payload = payload,
-        )
-        chunk.put()
+        chunk = self.new_chunk(chunk_message, int(chunk_rank), chunk_payload)
 
         query = db.GqlQuery("""\
 SELECT * FROM GaeChunkerChunk WHERE message = :1 ORDER BY rank
 """, chunk_message)
 
+        message = None
         if query.count() == chunk_message.length:
-            message = ""
-            for chunk in query:
-                message += chunk.payload
-            logging.info( message )
+            message = self.assemble_message(query)
             
+        logging.info( message )
 
+        response = { "mk": chunk_message.key().id() }
+        self.prepare_response(response, chunk_message, chunk, message)
         self.response.headers["Content-Type"] = "text/plain"
-        self.response.out.write(callback + "(" + simplejson.dumps({
-            "mk": chunk_message.key().id()
-        }) + ")");
+        self.response.out.write(callback + "(" + simplejson.dumps(response) + ")");
