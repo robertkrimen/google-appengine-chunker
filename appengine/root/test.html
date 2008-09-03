@@ -18,9 +18,13 @@ $(document).ready(function(){
     function sendChunk(query, payload, handler) {
         var _uri = uri.clone();
         _uri.query().set(query);
-        // $.getJSON(_uri + "&cp=" + payload + "&cb=?", handler);
-        _uri.query().set("cp", payload);
-        $.getJSON(_uri + "&cb=?", handler);
+        if (1) {
+            $.getJSON(_uri + "&cp=" + payload + "&cb=?", handler);
+        }
+        else {
+            _uri.query().set("cp", payload);
+            $.getJSON(_uri + "&cb=?", handler);
+        }
     }
 
     console.log();
@@ -28,16 +32,21 @@ $(document).ready(function(){
     function sendMessage(message) {
         if ("object" == typeof message)
             message = YAHOO.lang.JSON.stringify(message);
-        // message = encodeURIComponent(message)
+        message = encodeURIComponent(message)
         var payload;
-        var payload_size = 10;
+        var payload_size = 4;
         if (message.length > payload_size) {
             payload = [];
             var from = 0;
+            console.log(message)
             while (from < message.length) {
-                var to = from + payload_size > message.length ? message.length - from : payload_size;
-                payload.push(message.substr(from, to));
-                from += to;
+                var length = from + payload_size > message.length ? message.length - from : payload_size;
+                if (message[from + length - 1] == '%')
+                    length -= 1;
+                else if (message[from + length - 2] == '%')
+                    length -= 2;
+                payload.push(message.substr(from, length));
+                from += length;
             }
         }
         else 

@@ -94,26 +94,40 @@ class GaeChunkerHandler(webapp.RequestHandler):
 
         callback = self.request.get("cb")
 
+        new_message = empty( message_key )
+        chunking = True
         chunk_message = None
-        if empty( message_key ):
-            chunk_message = self.new_message(long(message_length))
-            chunk_rank = 0
+        chunk = None
+
+        if new_message:
+            message_length = long(message_length)
+            if message_length > 1:
+                chunk_message = self.new_message(message_length)
+                chunk_rank = 0
+            else:
+                chunking = False
         else:
             chunk_message = self.get_message(long(message_key))
 
-        chunk = self.new_chunk(chunk_message, int(chunk_rank), chunk_payload)
+        if chunking:
+            chunk = self.new_chunk(chunk_message, int(chunk_rank), chunk_payload)
 
-        query = db.GqlQuery("""\
-SELECT * FROM GaeChunkerChunk WHERE message = :1 ORDER BY rank
-""", chunk_message)
+            query = db.GqlQuery("""\
+    SELECT * FROM GaeChunkerChunk WHERE message = :1 ORDER BY rank
+    """, chunk_message)
 
-        message = None
-        if query.count() == chunk_message.length:
-            message = self.assemble_message(query)
+            message = None
+            if query.count() == chunk_message.length:
+                message = self.assemble_message(query)
+        else:
+            message = chunk_payload
             
         logging.info( message )
 
-        response = { "mk": chunk_message.key().id() }
+        response = {}
+        if chunk_message:
+            response["mk"] = chunk_message.key().id()
+
         self.prepare_response(response, chunk_message, chunk, message)
         self.response.headers["Content-Type"] = "text/plain"
         self.response.out.write(callback + "(" + simplejson.dumps(response) + ")");
