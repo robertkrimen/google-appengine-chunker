@@ -61,6 +61,17 @@ class GaeChunkerHandler(webapp.RequestHandler):
             message += chunk.payload
         return message;
 
+    def on_complete(self, message, chunk_message):
+        ""
+
+    def cleanup(self, chunk_message):
+            query = db.GqlQuery("""\
+    SELECT * FROM GaeChunkerChunk WHERE message = :1 ORDER BY rank
+    """, chunk_message)
+            for chunk in query:
+                db.delete(chunk)
+            db.delete(chunk_message)
+        
     def prepare_response(self, response, chunk_message, chunk, message):
         ""
 
@@ -131,7 +142,12 @@ class GaeChunkerHandler(webapp.RequestHandler):
             response["ck"] = chunk.key().id()
         if not message is None:
             response["complete"] = True
+            self.on_complete(message, chunk_message)
 
         self.prepare_response(response, chunk_message, chunk, message)
+
+        if not message is None and not chunk_message is None:
+            self.cleanup(chunk_message)
+
         self.response.headers["Content-Type"] = "text/plain"
         self.response.out.write(callback + "(" + simplejson.dumps(response) + ")");
