@@ -45,15 +45,15 @@ def empty(value):
 def default(value, default=''):
     return value if not empty(value) else default
 
-class GaeChunkerChunkMessage(db.Model):
+class ChunkMessage(db.Model):
     length = db.IntegerProperty(required = True)
 
-class GaeChunkerChunk(db.Model):
-    message=db.ReferenceProperty(GaeChunkerChunkMessage, required = True)
+class Chunk(db.Model):
+    message=db.ReferenceProperty(ChunkMessage, required = True)
     rank=db.IntegerProperty(required = True)
     payload=db.TextProperty(required = True)
 
-class GaeChunkerHandler(webapp.RequestHandler):
+class Handler(webapp.RequestHandler):
 
     def assemble_message(self, query):
         message = ""
@@ -66,7 +66,7 @@ class GaeChunkerHandler(webapp.RequestHandler):
 
     def cleanup(self, chunk_message):
             query = db.GqlQuery("""\
-    SELECT * FROM GaeChunkerChunk WHERE message = :1 ORDER BY rank
+    SELECT * FROM Chunk WHERE message = :1 ORDER BY rank
     """, chunk_message)
             for chunk in query:
                 db.delete(chunk)
@@ -76,17 +76,17 @@ class GaeChunkerHandler(webapp.RequestHandler):
         ""
 
     def new_message(self, length):
-        chunk_message = GaeChunkerChunkMessage(
+        chunk_message = ChunkMessage(
             length = length
         )
         chunk_message.put()
         return chunk_message
 
     def get_message(self, key):
-        return GaeChunkerChunkMessage.get_by_id(key)
+        return ChunkMessage.get_by_id(key)
 
     def new_chunk(self, chunk_message, rank, payload):
-        chunk = GaeChunkerChunk(
+        chunk = Chunk(
             message = chunk_message,
             rank = rank,
             payload = payload,
@@ -124,7 +124,7 @@ class GaeChunkerHandler(webapp.RequestHandler):
             chunk = self.new_chunk(chunk_message, int(chunk_rank), chunk_payload)
 
             query = db.GqlQuery("""\
-    SELECT * FROM GaeChunkerChunk WHERE message = :1 ORDER BY rank
+    SELECT * FROM Chunk WHERE message = :1 ORDER BY rank
     """, chunk_message)
 
             message = None
@@ -133,8 +133,6 @@ class GaeChunkerHandler(webapp.RequestHandler):
         else:
             message = chunk_payload
             
-        logging.info( message )
-
         response = {}
         if chunk_message:
             response["mk"] = chunk_message.key().id()

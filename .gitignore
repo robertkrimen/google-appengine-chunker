@@ -1,0 +1,4 @@
+Makefile
+inc
+google_appengine
+*.pyc
