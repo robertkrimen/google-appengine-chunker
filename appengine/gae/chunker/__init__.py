@@ -47,11 +47,13 @@ def default(value, default=''):
 
 class ChunkMessage(db.Model):
     length = db.IntegerProperty(required = True)
+    cdtime = db.DateTimeProperty(auto_now_add = True)
 
 class Chunk(db.Model):
     message=db.ReferenceProperty(ChunkMessage, required = True)
     rank=db.IntegerProperty(required = True)
     payload=db.TextProperty(required = True)
+    cdtime = db.DateTimeProperty(auto_now_add = True)
 
 class Handler(webapp.RequestHandler):
 
