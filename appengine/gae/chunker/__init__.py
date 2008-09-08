@@ -105,8 +105,6 @@ class Handler(webapp.RequestHandler):
         chunk_rank = self.request.get("cr", None)
         chunk_payload = self.request.get("cp", None)
 
-        callback = self.request.get("cb")
-
         new_message = empty( message_key )
         chunking = True
         chunk_message = None
@@ -149,5 +147,12 @@ class Handler(webapp.RequestHandler):
         if not message is None and not chunk_message is None:
             self.cleanup(chunk_message)
 
+        self.respond(response)
+
+    def respond(self, response):
+        callback = self.request.get("cb")
+        output = simplejson.dumps(response);
+        if not empty(callback):
+            output = callback + "(" + output + ")"
         self.response.headers["Content-Type"] = "text/plain"
-        self.response.out.write(callback + "(" + simplejson.dumps(response) + ")");
+        self.response.out.write(output);
